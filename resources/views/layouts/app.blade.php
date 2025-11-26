@@ -54,6 +54,14 @@
                                     Reports
                                 </a>
                             @endif
+
+                            @if(Auth::user()->isAdmin())
+                                <a href="{{ route('users') }}"
+                                   class="px-3 py-2 text-sm font-medium rounded-full transition
+                                          {{ request()->routeIs('users') ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600/70' }}">
+                                    Users
+                                </a>
+                            @endif
                         </div>
                     @endauth
                 </div>
@@ -116,6 +124,14 @@
                            class="px-3 py-1.5 text-xs font-medium rounded-full transition
                                   {{ request()->routeIs('reports') ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600/70' }}">
                             Reports
+                        </a>
+                    @endif
+
+                    @if(Auth::user()->isAdmin())
+                        <a href="{{ route('users') }}"
+                           class="px-3 py-1.5 text-xs font-medium rounded-full transition
+                                  {{ request()->routeIs('users') ? 'bg-white text-blue-700 shadow-sm' : 'text-blue-100 hover:bg-blue-600/70' }}">
+                            Users
                         </a>
                     @endif
                 </div>
