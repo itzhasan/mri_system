@@ -7,7 +7,7 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 </head>
-<body class="min-h-screen bg-gradient-to-br from-slate-100 via-slate-50 to-slate-200">
+<body class="min-h-screen bg-gray-50">
     <nav class="sticky top-0 z-40 bg-blue-700/95 backdrop-blur border-b border-blue-500/40 text-white shadow-lg">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center py-3">
@@ -123,12 +123,8 @@
         </div>
     </nav>
 
-    <main class="">
-        <div class="bg-white/90 backdrop-blur rounded-xl shadow-md border border-slate-200/70">
-            <div class="p-4 sm:p-6 lg:p-8">
-                {{ $slot }}
-            </div>
-        </div>
+    <main class="w-full min-h-[calc(100vh-80px)] p-4 sm:p-6 lg:p-8">
+        {{ $slot }}
     </main>
 
     @livewireScripts
