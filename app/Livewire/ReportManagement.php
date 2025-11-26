@@ -153,6 +153,7 @@ class ReportManagement extends Component
             ->where('status', '!=', 'cancelled')
             ->get();
 
-        return view('livewire.report-management', compact('reports', 'availableScans'));
+        return view('livewire.report-management', compact('reports', 'availableScans'))
+            ->layout('layouts.app');
     }
 }

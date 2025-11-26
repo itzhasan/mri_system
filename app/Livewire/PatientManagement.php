@@ -2,13 +2,9 @@
 
 namespace App\Livewire;
 
-use App\Models\MriScan;
-use App\Models\Report;
 use Livewire\Component;
 use Livewire\WithPagination;
 use App\Models\Patient;
-use Illuminate\Support\Facades\Auth;
-use Notification;
 
 class PatientManagement extends Component
 {
@@ -54,6 +50,27 @@ class PatientManagement extends Component
     {
         $this->resetForm();
         $this->showModal = true;
+        $this->editMode = false;
+    }
+
+    public function edit($id)
+    {
+        $patient = Patient::findOrFail($id);
+
+        $this->patientId = $patient->id;
+        $this->first_name = $patient->first_name;
+        $this->last_name = $patient->last_name;
+        $this->date_of_birth = optional($patient->date_of_birth)->format('Y-m-d');
+        $this->gender = $patient->gender;
+        $this->phone = $patient->phone;
+        $this->email = $patient->email;
+        $this->address = $patient->address;
+        $this->emergency_contact_name = $patient->emergency_contact_name;
+        $this->emergency_contact_phone = $patient->emergency_contact_phone;
+        $this->medical_history = $patient->medical_history;
+        $this->allergies = $patient->allergies;
+
+        $this->showModal = true;
         $this->editMode = true;
     }
 
@@ -62,42 +79,30 @@ class PatientManagement extends Component
         $this->validate();
 
         $data = [
-            'mri_scan_id' => $this->mri_scan_id,
-            'doctor_id' => Auth::id(),
-            'findings' => $this->findings,
-            'impression' => $this->impression,
-            'recommendations' => $this->recommendations,
-            'comparison_notes' => $this->comparison_notes,
-            'status' => $this->status,
+            'first_name' => $this->first_name,
+            'last_name' => $this->last_name,
+            'date_of_birth' => $this->date_of_birth,
+            'gender' => $this->gender,
+            'phone' => $this->phone,
+            'email' => $this->email,
+            'address' => $this->address,
+            'emergency_contact_name' => $this->emergency_contact_name,
+            'emergency_contact_phone' => $this->emergency_contact_phone,
+            'medical_history' => $this->medical_history,
+            'allergies' => $this->allergies,
         ];
 
-        if ($this->status === 'final') {
-            $data['finalized_at'] = now();
-        }
-
-        if ($this->editMode) {
-            Report::find($this->reportId)->update($data);
-            session()->flash('message', 'Report updated successfully.');
+        if ($this->editMode && $this->patientId) {
+            $patient = Patient::findOrFail($this->patientId);
+            $patient->update($data);
+            session()->flash('message', 'Patient updated successfully.');
         } else {
-            $data['report_number'] = 'REP' . date('Ymd') . str_pad(Report::count() + 1, 4, '0', STR_PAD_LEFT);
-            $data['reported_at'] = now();
-            $report = Report::create($data);
+            // Generate a simple incremental patient number (e.g., P20250004)
+            $nextNumber = str_pad(Patient::withTrashed()->count() + 1, 4, '0', STR_PAD_LEFT);
+            $data['patient_number'] = 'P' . now()->format('Y') . $nextNumber;
 
-            // Update scan status
-            $scan = MriScan::find($this->mri_scan_id);
-            $scan->update(['status' => 'reported']);
-
-            // Send notification to technician
-            Notification::create([
-                'user_id' => $scan->mri_technician_id,
-                'mri_scan_id' => $scan->id,
-                'report_id' => $report->id,
-                'title' => 'Report Completed',
-                'message' => 'Report for scan ' . $scan->scan_number . ' has been completed.',
-                'type' => 'report_ready',
-            ]);
-
-            session()->flash('message', 'Report created successfully.');
+            Patient::create($data);
+            session()->flash('message', 'Patient created successfully.');
         }
 
         $this->closeModal();
@@ -105,8 +110,10 @@ class PatientManagement extends Component
 
     public function delete($id)
     {
-        Report::find($id)->delete();
-        session()->flash('message', 'Report deleted successfully.');
+        $patient = Patient::findOrFail($id);
+        $patient->delete();
+
+        session()->flash('message', 'Patient deleted successfully.');
     }
 
     public function closeModal()
@@ -117,37 +124,34 @@ class PatientManagement extends Component
 
     private function resetForm()
     {
-        $this->reportId = null;
-        $this->mri_scan_id = null;
-        $this->findings = '';
-        $this->impression = '';
-        $this->recommendations = '';
-        $this->comparison_notes = '';
-        $this->status = 'draft';
+        $this->patientId = null;
+        $this->first_name = '';
+        $this->last_name = '';
+        $this->date_of_birth = '';
+        $this->gender = '';
+        $this->phone = '';
+        $this->email = '';
+        $this->address = '';
+        $this->emergency_contact_name = '';
+        $this->emergency_contact_phone = '';
+        $this->medical_history = '';
+        $this->allergies = '';
+        $this->editMode = false;
     }
 
     public function render()
     {
-        $user = Auth::user();
+        $patients = Patient::query()
+            ->when($this->search, function ($query) {
+                $query->where('patient_number', 'like', '%' . $this->search . '%')
+                    ->orWhere('first_name', 'like', '%' . $this->search . '%')
+                    ->orWhere('last_name', 'like', '%' . $this->search . '%')
+                    ->orWhere('phone', 'like', '%' . $this->search . '%');
+            })
+            ->latest()
+            ->paginate(10);
 
-        $query = Report::with(['mriScan.patient', 'doctor']);
-
-        if ($user->isDoctor()) {
-            $query->where('doctor_id', $user->id);
-        }
-
-        if ($this->search) {
-            $query->where('report_number', 'like', '%' . $this->search . '%');
-        }
-
-        $reports = $query->latest()->paginate(10);
-
-        $availableScans = MriScan::with('patient')
-            ->where('assigned_doctor_id', $user->id)
-            ->whereDoesntHave('report')
-            ->where('status', '!=', 'cancelled')
-            ->get();
-
-        return view('livewire.report-management', compact('reports', 'availableScans'));
+        return view('livewire.patient-management', compact('patients'))
+            ->layout('layouts.app');
     }
 }

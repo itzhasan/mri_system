@@ -223,6 +223,7 @@ class MriScanManagement extends Component
         $patients = Patient::all();
         $doctors = User::where('role', 'doctor')->where('is_active', true)->get();
 
-        return view('livewire.mri-scan-management', compact('scans', 'patients', 'doctors'));
+        return view('livewire.mri-scan-management', compact('scans', 'patients', 'doctors'))
+            ->layout('layouts.app');
     }
 }
