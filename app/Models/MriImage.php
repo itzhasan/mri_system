@@ -3,7 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Facades\Storage;
+
 class MriImage extends Model
 {
     protected $guarded = [];
@@ -15,6 +15,6 @@ class MriImage extends Model
 
     public function getUrlAttribute()
     {
-        return Storage::url($this->file_path);
+        return '/storage/' . $this->file_path;
     }
 }

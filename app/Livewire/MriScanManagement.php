@@ -35,6 +35,8 @@ class MriScanManagement extends Component
     public $contrast_used = false;
     public $contrast_agent;
     public $images = [];
+    public $newImages = [];
+    public $fileInputKey = 0;
     public $currentScanImages = [];
 
     protected $rules = [
@@ -50,7 +52,28 @@ class MriScanManagement extends Component
         'contrast_used' => 'boolean',
         'contrast_agent' => 'nullable|string',
         'images.*' => 'nullable|image|max:10240',
+        'newImages.*' => 'nullable|image|max:10240',
     ];
+
+    public function updatedNewImages()
+    {
+        $this->validateOnly('newImages.*');
+
+        foreach ($this->newImages as $file) {
+            $this->images[] = $file;
+        }
+
+        $this->newImages = [];
+        $this->fileInputKey++;
+    }
+
+    public function removePendingImage($index)
+    {
+        if (isset($this->images[$index])) {
+            unset($this->images[$index]);
+            $this->images = array_values($this->images);
+        }
+    }
 
     public function updatingSearch()
     {
@@ -194,6 +217,8 @@ class MriScanManagement extends Component
         $this->contrast_used = false;
         $this->contrast_agent = '';
         $this->images = [];
+        $this->newImages = [];
+        $this->fileInputKey++;
         $this->currentScanImages = [];
     }
 
