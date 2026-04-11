@@ -17,4 +17,9 @@ class MriImage extends Model
     {
         return '/storage/' . $this->file_path;
     }
+
+    public function getIsDicomAttribute()
+    {
+        return in_array(strtolower((string) $this->file_type), ['dcm', 'dicom']);
+    }
 }

@@ -279,9 +279,9 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                     d="M7 16a4 4 0 01-.88-7.9 5 5 0 019.9-1A5.5 5.5 0 0118 16H7z M12 12v8 m-4-4l4-4 4 4"></path>
                             </svg>
-                            <p class="text-sm font-medium text-gray-700">Click to select images or drag &amp; drop</p>
-                            <p class="text-xs text-gray-500 mt-1">You can add images in multiple batches (Max 10MB each)</p>
-                            <input wire:model="newImages" type="file" multiple accept="image/*" class="hidden">
+                            <p class="text-sm font-medium text-gray-700">Click to select files or drag &amp; drop</p>
+                            <p class="text-xs text-gray-500 mt-1">DICOM (.dcm) and images &middot; Max 100MB each &middot; multiple batches supported</p>
+                            <input wire:model="newImages" type="file" multiple accept=".dcm,.dicom,image/*" class="hidden">
                         </label>
 
                         @error('newImages.*') <p class="text-red-500 text-sm mt-2">{{ $message }}</p> @enderror
@@ -298,10 +298,31 @@
                         @if(count($images) > 0)
                             <div class="mt-5 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                                 @foreach($images as $index => $file)
+                                    @php
+                                        $ext = strtolower($file->getClientOriginalExtension());
+                                        $isDicom = in_array($ext, ['dcm', 'dicom']);
+                                    @endphp
                                     <div class="relative group border border-gray-200 rounded-lg overflow-hidden bg-gray-50"
                                         wire:key="pending-{{ $fileInputKey }}-{{ $index }}">
-                                        <img src="{{ $file->temporaryUrl() }}" alt="{{ $file->getClientOriginalName() }}"
-                                            class="w-full h-32 object-cover">
+                                        @if($isDicom)
+                                            <div class="w-full h-32 bg-gradient-to-br from-indigo-500 to-blue-700 flex flex-col items-center justify-center text-white">
+                                                <svg class="w-10 h-10 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                                <span class="text-xs font-semibold tracking-wide">DICOM</span>
+                                            </div>
+                                        @elseif($file->isPreviewable())
+                                            <img src="{{ $file->temporaryUrl() }}" alt="{{ $file->getClientOriginalName() }}"
+                                                class="w-full h-32 object-cover">
+                                        @else
+                                            <div class="w-full h-32 bg-gray-200 flex items-center justify-center text-gray-500">
+                                                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                                                </svg>
+                                            </div>
+                                        @endif
                                         <div class="p-2">
                                             <p class="text-xs font-medium text-gray-700 truncate" title="{{ $file->getClientOriginalName() }}">
                                                 {{ $file->getClientOriginalName() }}
@@ -354,12 +375,33 @@
                 @if(count($currentScanImages) > 0)
                     <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
                         @foreach($currentScanImages as $image)
-                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group relative">
-                                <a href="{{ $image->url }}" target="_blank" rel="noopener"
-                                    class="block bg-gray-100 overflow-hidden">
-                                    <img src="{{ $image->url }}" alt="{{ $image->file_name }}"
-                                        class="w-full h-64 object-cover group-hover:scale-105 transition duration-300">
-                                </a>
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden group relative"
+                                wire:key="scan-image-{{ $image->id }}">
+                                @if($image->isDicom)
+                                    <div class="relative bg-black h-64 flex items-center justify-center overflow-hidden"
+                                        x-data
+                                        x-init="$nextTick(() => window.renderDicom('{{ $image->url }}', $refs.canvas, $refs.status))">
+                                        <canvas x-ref="canvas" class="max-w-full max-h-full"></canvas>
+                                        <div x-ref="status" class="absolute text-xs text-gray-300 flex items-center gap-2">
+                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" class="opacity-25"></circle>
+                                                <path fill="currentColor" class="opacity-75" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+                                            </svg>
+                                            Loading DICOM…
+                                        </div>
+                                    </div>
+                                    <span class="absolute top-2 left-2 bg-indigo-600 text-white text-xs font-semibold px-2 py-0.5 rounded">DICOM</span>
+                                    <a href="{{ $image->url }}" download="{{ $image->file_name }}"
+                                        class="absolute bottom-20 left-2 bg-black/60 hover:bg-black/80 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">
+                                        Download
+                                    </a>
+                                @else
+                                    <a href="{{ $image->url }}" target="_blank" rel="noopener"
+                                        class="block bg-gray-100 overflow-hidden">
+                                        <img src="{{ $image->url }}" alt="{{ $image->file_name }}"
+                                            class="w-full h-64 object-cover group-hover:scale-105 transition duration-300">
+                                    </a>
+                                @endif
                                 <div class="p-3">
                                     <p class="text-sm font-medium text-gray-800 truncate" title="{{ $image->file_name }}">
                                         {{ $image->file_name }}
@@ -392,3 +434,122 @@
         </div>
     @endif
 </div>
+
+@script
+<script>
+    (function () {
+        if (window.__dicomRendererReady) return;
+        window.__dicomRendererReady = true;
+
+        const loadDicomParser = () => new Promise((resolve, reject) => {
+            if (window.dicomParser) return resolve();
+            const existing = document.querySelector('script[data-dicom-parser]');
+            if (existing) {
+                existing.addEventListener('load', () => resolve());
+                existing.addEventListener('error', reject);
+                return;
+            }
+            const s = document.createElement('script');
+            s.src = 'https://cdn.jsdelivr.net/npm/dicom-parser@1.8.21/dist/dicomParser.min.js';
+            s.setAttribute('data-dicom-parser', '');
+            s.onload = () => resolve();
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+
+        window.renderDicom = async function (url, canvas, statusEl) {
+            const setError = (msg) => {
+                if (statusEl) {
+                    statusEl.innerHTML = '<span class="text-red-400">' + msg + '</span>';
+                }
+            };
+            try {
+                await loadDicomParser();
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                const buffer = await response.arrayBuffer();
+                const byteArray = new Uint8Array(buffer);
+                const dataSet = dicomParser.parseDicom(byteArray);
+
+                const rows = dataSet.uint16('x00280010');
+                const cols = dataSet.uint16('x00280011');
+                const bitsAllocated = dataSet.uint16('x00280100') || 8;
+                const pixelRepresentation = dataSet.uint16('x00280103') || 0;
+                const samplesPerPixel = dataSet.uint16('x00280002') || 1;
+                const photometric = dataSet.string('x00280004') || 'MONOCHROME2';
+                const rescaleSlope = parseFloat(dataSet.string('x00281053') || '1');
+                const rescaleIntercept = parseFloat(dataSet.string('x00281052') || '0');
+                const windowCenterRaw = dataSet.string('x00281050');
+                const windowWidthRaw = dataSet.string('x00281051');
+
+                const pixelDataElement = dataSet.elements.x7fe00010;
+                if (!pixelDataElement) throw new Error('No pixel data element');
+                if (!rows || !cols) throw new Error('Invalid image dimensions');
+
+                canvas.width = cols;
+                canvas.height = rows;
+                const ctx = canvas.getContext('2d');
+                const imageData = ctx.createImageData(cols, rows);
+
+                if (samplesPerPixel === 1) {
+                    let pixelData;
+                    if (bitsAllocated === 16) {
+                        pixelData = pixelRepresentation === 1
+                            ? new Int16Array(buffer, pixelDataElement.dataOffset, pixelDataElement.length / 2)
+                            : new Uint16Array(buffer, pixelDataElement.dataOffset, pixelDataElement.length / 2);
+                    } else {
+                        pixelData = new Uint8Array(buffer, pixelDataElement.dataOffset, pixelDataElement.length);
+                    }
+
+                    // Prefer DICOM window center/width if provided; else auto-window from min/max.
+                    let wc, ww;
+                    if (windowCenterRaw && windowWidthRaw) {
+                        wc = parseFloat(String(windowCenterRaw).split('\\')[0]);
+                        ww = parseFloat(String(windowWidthRaw).split('\\')[0]);
+                    } else {
+                        let min = Infinity, max = -Infinity;
+                        for (let i = 0; i < pixelData.length; i++) {
+                            const v = pixelData[i] * rescaleSlope + rescaleIntercept;
+                            if (v < min) min = v;
+                            if (v > max) max = v;
+                        }
+                        wc = (min + max) / 2;
+                        ww = (max - min) || 1;
+                    }
+                    const low = wc - ww / 2;
+                    const invert = photometric === 'MONOCHROME1';
+
+                    for (let i = 0; i < pixelData.length; i++) {
+                        const v = pixelData[i] * rescaleSlope + rescaleIntercept;
+                        let g = Math.round(((v - low) / ww) * 255);
+                        if (g < 0) g = 0;
+                        else if (g > 255) g = 255;
+                        if (invert) g = 255 - g;
+                        const j = i * 4;
+                        imageData.data[j] = g;
+                        imageData.data[j + 1] = g;
+                        imageData.data[j + 2] = g;
+                        imageData.data[j + 3] = 255;
+                    }
+                } else if (samplesPerPixel === 3) {
+                    const pixelData = new Uint8Array(buffer, pixelDataElement.dataOffset, pixelDataElement.length);
+                    for (let i = 0, j = 0; j < imageData.data.length; i += 3, j += 4) {
+                        imageData.data[j] = pixelData[i];
+                        imageData.data[j + 1] = pixelData[i + 1];
+                        imageData.data[j + 2] = pixelData[i + 2];
+                        imageData.data[j + 3] = 255;
+                    }
+                } else {
+                    throw new Error('Unsupported samples per pixel: ' + samplesPerPixel);
+                }
+
+                ctx.putImageData(imageData, 0, 0);
+                if (statusEl) statusEl.style.display = 'none';
+            } catch (e) {
+                console.error('DICOM render failed for', url, e);
+                setError('Failed to render DICOM');
+            }
+        };
+    })();
+</script>
+@endscript

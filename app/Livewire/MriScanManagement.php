@@ -51,8 +51,8 @@ class MriScanManagement extends Component
         'priority' => 'required|string',
         'contrast_used' => 'boolean',
         'contrast_agent' => 'nullable|string',
-        'images.*' => 'nullable|image|max:10240',
-        'newImages.*' => 'nullable|image|max:10240',
+        'images.*' => 'nullable|file|max:102400|extensions:dcm,dicom,jpg,jpeg,png,gif,bmp',
+        'newImages.*' => 'nullable|file|max:102400|extensions:dcm,dicom,jpg,jpeg,png,gif,bmp',
     ];
 
     public function updatedNewImages()
