@@ -172,3 +172,4 @@ class DatabaseSeeder extends Seeder
         $this->command->info('Technician 2: tech2@mri.com / password');
     }
 }
+//blood type
