@@ -34,6 +34,13 @@ class ReportManagement extends Component
         'status' => 'required|in:draft,final,amended',
     ];
 
+    public function mount()
+    {
+        if ($scanId = request()->integer('scan')) {
+            $this->create($scanId);
+        }
+    }
+
     public function updatingSearch()
     {
         $this->resetPage();

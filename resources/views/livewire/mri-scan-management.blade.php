@@ -83,6 +83,13 @@
                                 </button>
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                @if($scan->report)
+                                    <a href="{{ route('reports.print', $scan->report) }}" target="_blank"
+                                        class="text-green-600 hover:text-green-800 font-medium mr-4">View Report</a>
+                                @elseif((Auth::user()->isDoctor() || Auth::user()->isAdmin()) && $scan->status !== 'cancelled')
+                                    <a href="{{ route('reports', ['scan' => $scan->id]) }}"
+                                        class="text-indigo-600 hover:text-indigo-800 font-medium mr-4">Write Report</a>
+                                @endif
                                 @if(Auth::user()->isTechnician() || Auth::user()->isAdmin())
                                     <button wire:click="edit({{ $scan->id }})"
                                         class="text-blue-600 hover:text-blue-800 font-medium mr-4">Edit</button>

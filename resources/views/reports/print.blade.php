@@ -128,6 +128,35 @@
         .btn:hover { background: #1d4ed8; }
         .btn-secondary { background: #fff; color: #374151; border: 1px solid #d1d5db; }
         .btn-secondary:hover { background: #f9fafb; }
+        .images {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin-top: 8px;
+        }
+        .images .img-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 8px;
+            text-align: center;
+        }
+        .images .img-card img {
+            max-width: 100%;
+            max-height: 260px;
+            border-radius: 4px;
+        }
+        .images .img-card .caption {
+            font-size: 11px;
+            color: #6b7280;
+            margin-top: 6px;
+        }
+        .dicom-list {
+            font-size: 12px;
+            color: #4b5563;
+            margin: 8px 0 0;
+            padding-left: 18px;
+        }
+        .dicom-list li { margin-bottom: 2px; }
         @media print {
             body { background: #fff; padding: 0; }
             .page { border: none; box-shadow: none; padding: 24px; max-width: none; }
@@ -136,12 +165,15 @@
     </style>
 </head>
 <body>
+    @unless($pdf ?? false)
     <div class="toolbar">
-        <a href="{{ route('reports') }}" class="btn btn-secondary">&larr; Back</a>
+        <a href="{{ auth()->user()->isTechnician() ? route('scans') : route('reports') }}" class="btn btn-secondary">&larr; Back</a>
+        <a href="{{ route('reports.pdf', $report) }}" class="btn btn-secondary">⬇ Download PDF</a>
         <button class="btn" onclick="window.print()">
             🖨 Print Report
         </button>
     </div>
+    @endunless
 
     <div class="page">
         <div class="header">
@@ -228,6 +260,55 @@
             <div class="section">
                 <h2>Comparison Notes</h2>
                 <p>{{ $report->comparison_notes }}</p>
+            </div>
+        @endif
+
+        @php
+            $scanImages = $report->mriScan->images ?? collect();
+            $cards = [];
+            $unrendered = [];
+            foreach ($scanImages as $img) {
+                $uri = $img->preview_data_uri;
+                if ($uri) {
+                    $cards[] = ['uri' => $uri, 'img' => $img];
+                } elseif ($img->is_dicom) {
+                    $unrendered[] = $img;
+                }
+            }
+        @endphp
+
+        @if($scanImages->isNotEmpty())
+            <div class="section">
+                <h2>Scan Images</h2>
+
+                @if(count($cards))
+                    <div class="images">
+                        @foreach($cards as $card)
+                            <div class="img-card">
+                                <img src="{{ $card['uri'] }}" alt="{{ $card['img']->file_name }}">
+                                <div class="caption">
+                                    {{ $card['img']->sequence_name ?: $card['img']->file_name }}
+                                    @if($card['img']->slice_number) — slice {{ $card['img']->slice_number }} @endif
+                                    @if($card['img']->is_dicom) · DICOM @endif
+                                </div>
+                            </div>
+                        @endforeach
+                    </div>
+                @endif
+
+                @if(count($unrendered))
+                    <p style="font-size:12px;color:#6b7280;margin:12px 0 0;">
+                        DICOM files (compressed — view in the imaging workstation):
+                    </p>
+                    <ul class="dicom-list">
+                        @foreach($unrendered as $img)
+                            <li>
+                                {{ $img->file_name }}
+                                @if($img->sequence_name) — {{ $img->sequence_name }} @endif
+                            </li>
+                        @endforeach
+                    </ul>
+                @endif
             </div>
         @endif
 

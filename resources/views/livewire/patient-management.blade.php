@@ -68,6 +68,8 @@
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-700">{{ $patient->phone ?: '—' }}</td>
                             <td class="px-6 py-4 whitespace-nowrap text-right text-sm">
+                                <a href="{{ route('patients.history', $patient) }}"
+                                    class="text-blue-600 hover:text-blue-800 font-medium mr-4">History</a>
                                 <button wire:click="edit({{ $patient->id }})"
                                     class="text-blue-600 hover:text-blue-800 font-medium mr-4">Edit</button>
                                 <button wire:click="delete({{ $patient->id }})"

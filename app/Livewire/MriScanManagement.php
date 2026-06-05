@@ -226,7 +226,7 @@ class MriScanManagement extends Component
     {
         $user = Auth::user();
         
-        $query = MriScan::with(['patient', 'technician', 'assignedDoctor']);
+        $query = MriScan::with(['patient', 'technician', 'assignedDoctor', 'report']);
         
         if ($user->isDoctor()) {
             $query->where('assigned_doctor_id', $user->id);
